@@ -52,7 +52,9 @@ export class FetchQueue {
     const entry = this.mutableQueue.shift();
     if (entry !== undefined) {
       this.mutableRunning += 1;
-      fetch(entry.url)
+      fetch(entry.url, {
+        mode: 'no-cors',
+      })
         .then(async (res) => {
           if (!res.ok) {
             throw new FetchError(entry.url, res.status, res.statusText);

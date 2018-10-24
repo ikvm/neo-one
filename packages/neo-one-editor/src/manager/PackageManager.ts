@@ -3,7 +3,7 @@ import { mergeScanLatest } from '@neo-one/utils';
 import _ from 'lodash';
 import * as path from 'path';
 import { Observable, Subscription } from 'rxjs';
-import { distinctUntilChanged, map } from 'rxjs/operators';
+import { distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { FetchError, FetchQueue } from './FetchQueue';
 import { Dependencies, DependencyInfo, PackageJSON, resolve, ResolvedDependencies } from './Resolver';
 
@@ -45,7 +45,7 @@ export class PackageManager {
   public readonly packages$: Observable<{ readonly [name: string]: Module }>;
   private readonly fs: FileSystem;
   private readonly subscription: Subscription;
-  private readonly onAddTypes: (name: string, version: string, typesFullName: string) => void;
+  private readonly onAddTypes: (name: string, version: string) => void;
   private readonly fetchQueue: FetchQueue;
 
   public constructor({
@@ -56,7 +56,7 @@ export class PackageManager {
   }: {
     readonly packageJSON$: Observable<PackageJSON>;
     readonly fs: FileSystem;
-    readonly onAddTypes: (name: string, version: string, typesFullName: string) => void;
+    readonly onAddTypes: (name: string, version: string) => void;
     readonly fetchQueue: FetchQueue;
   }) {
     this.fs = fs;
@@ -71,8 +71,13 @@ export class PackageManager {
     );
     this.packages$ = this.dependencies$.pipe(mergeScanLatest(async (_acc, deps) => this.fetchPackages(deps)));
     this.subscription = this.packages$
-      .pipe(map(async (packages) => this.writeModules({ packages, pkgPath: '/node_modules' })))
-      .subscribe();
+      .pipe(switchMap(async (packages) => this.writeModules({ packages, pkgPath: '/node_modules' })))
+      .subscribe({
+        error: (error) => {
+          // tslint:disable-next-line no-console
+          console.error(error);
+        },
+      });
   }
 
   public dispose() {
@@ -80,6 +85,8 @@ export class PackageManager {
   }
 
   private async resolveDependencies(dependencies: Dependencies): Promise<ResolvedDependencies> {
+    console.log('resolving');
+
     return resolve(this.fetchQueue, dependencies);
   }
 
@@ -95,6 +102,9 @@ export class PackageManager {
       this.fetchPackages(dependencies),
       this.checkTypes({ name, version, types }),
     ]);
+
+    console.log(packageFilePaths);
+    console.log(subDependencies);
 
     const packageFiles = await Promise.all(
       packageFilePaths.map(async (filePath) => {
@@ -144,7 +154,7 @@ export class PackageManager {
     );
   }
 
-  private async checkTypes({ name, version, types }: FetchPackageInfo) {
+  private async checkTypes({ name, types }: FetchPackageInfo) {
     if (types) {
       return;
     }
@@ -158,7 +168,7 @@ export class PackageManager {
 
       const latestTypesVersion = typesVersions.tags.latest;
 
-      this.onAddTypes(name, version, `${typesName}@${latestTypesVersion}`);
+      this.onAddTypes(typesName, latestTypesVersion);
     } catch (error) {
       if (error instanceof FetchError) {
         return;
@@ -202,6 +212,7 @@ export class PackageManager {
     readonly packages: { readonly [name: string]: Module };
     readonly pkgPath: string;
   }) {
+    console.log(packages);
     await Promise.all(
       Object.entries(packages).map(async ([name, pkg]) =>
         Promise.all([
@@ -224,6 +235,7 @@ export class PackageManager {
     readonly pkg: Module;
     readonly pkgPath: string;
   }) {
+    console.log(`write: ${name}`);
     await Promise.all(
       pkg.packageFiles.map(async (file) => this.fs.writeFile(path.resolve(pkgPath, name, file.path), file.file)),
     );

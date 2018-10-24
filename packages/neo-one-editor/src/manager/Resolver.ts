@@ -1,10 +1,9 @@
 import { Graph } from 'graphlib';
 import _ from 'lodash';
-import npa from 'npm-package-arg';
 import semver from 'semver';
 import { FetchQueue } from './FetchQueue';
 
-const NPM_REGISTRY_URL = 'https://registry.npmjs.org';
+const NPM_REGISTRY_URL = 'https://registry.npmjs.cf';
 const ROOT_NODE = 'root$';
 
 export interface Dependencies {
@@ -67,9 +66,7 @@ class Resolver {
   }
 
   private async fetchRegistryPackage(name: string): Promise<RegistryPackage> {
-    const escapedName = name && npa(name).escapedName;
-
-    return this.fetchQueue.fetch(`${NPM_REGISTRY_URL}/${escapedName}`, async (response: Response) => response.json());
+    return this.fetchQueue.fetch(`${NPM_REGISTRY_URL}/${name}`, async (response: Response) => response.json());
   }
 
   private resolveVersion({

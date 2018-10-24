@@ -1,5 +1,6 @@
 /* @jest-environment jsdom */
-import { FetchQueue, resolve } from '../../manager';
+import { FetchQueue } from '../../manager';
+import { resolve } from '../../manager/Resolver';
 
 const dependencies = {
   'bignumber.js': '^7.2.1',

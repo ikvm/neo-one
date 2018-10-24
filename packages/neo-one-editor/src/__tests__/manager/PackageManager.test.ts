@@ -1,7 +1,8 @@
 /* @jest-environment jsdom */
 import { interval, of as _of } from 'rxjs';
 import { map, take } from 'rxjs/operators';
-import { FetchQueue, PackageManager } from '../../manager';
+import { FetchQueue } from '../../manager';
+import { PackageManager } from '../../manager/PackageManager';
 
 const coursePackages = {
   name: 'courses',

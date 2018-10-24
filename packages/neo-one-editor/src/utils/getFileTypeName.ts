@@ -8,6 +8,10 @@ export const getFileTypeName = (file: EditorFile) => {
     return 'html';
   }
 
+  if (type === 'json') {
+    return 'json';
+  }
+
   const major = type === 'typescript' || type === 'contract' ? 'TypeScript' : 'JavaScript';
 
   if (file.path.endsWith('x')) {
